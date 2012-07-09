@@ -97,6 +97,11 @@ function convert_mods_to_citeproc_jsons($mods_in) {
       'number-nihmsid' => convert_mods_to_citeproc_json_query($mods, '/mods:mods/mods:identifier[@type="mid"]'),
       'type' => convert_mods_to_citeproc_json_genre($mods)), $names, $dates
     );
+    if($output['type'] == 'book') {
+    	unset($output['container-title']);
+	unset($output['page']);
+	unset($output['publisher-place']);
+    }
     return $output;
   }
   else {
@@ -256,7 +261,7 @@ function convert_mods_to_citeproc_json_page(SimpleXMLElement $mods) {
  *   The type property for the Citation.
  */
 function convert_mods_to_citeproc_json_type(SimpleXMLElement $mods) {
-  /**
+ /**
    * @auth='marcgt' -- marcgt should be the preferred authority
    * @auth='local'  -- actually better at differentiating some types
    * not(@auth)     -- unauthoritative types from Bibutils
@@ -266,11 +271,11 @@ function convert_mods_to_citeproc_json_type(SimpleXMLElement $mods) {
    *  //mods/genre[@authority='marcgt'] == 'book' means "Book" 
    *  *UNLESS* //mods/relatedItem[type='host']/titleInfo/title exists
    *  *OR*     //mods/genre[@authority='local'] == 'bookSection'
-   */
+   */ 
   module_load_include('inc', 'citeproc', 'generators/mods_csl_type_conversion');
   module_load_include('inc', 'citeproc', 'generators/marcrelator_conversion');
   $output = NULL;
-  // First try: item's local marcgt genre.
+// First try: item's local marcgt genre.
   $type_marcgt = $mods->xpath("/mods:mods/mods:genre[@authority='marcgt']");
   if (!empty($type_marcgt)) {
     $interim_type = & $type_marcgt[0];
@@ -279,7 +284,7 @@ function convert_mods_to_citeproc_json_type(SimpleXMLElement $mods) {
       $host_titles = $interim_type->xpath("../mods:relatedItem[@type='host']/mods:titleInfo/mods:title");
       if (!empty($host_titles)) {
         // This is but a chapter in a book
-        $output = 'chapter';
+       $output = 'chapter';
       }
       else {
         $output = 'book';
@@ -318,7 +323,7 @@ function convert_mods_to_citeproc_json_type(SimpleXMLElement $mods) {
   if (empty($output)) {
     $types_local_auth = $mods->xpath("/mods:mods/mods:genre[not(@authority='marcgt')]");
     while (empty($output) && list( $num, $type ) = each($types_local_auth)) {
-      $interim_type = (string) $type;
+      $interim_type = (string) $type;      
       $output = mods_genre_to_csl_type($interim_type);
     }
   }
@@ -508,27 +513,39 @@ function convert_mods_to_citeproc_json_dates(SimpleXMLElement $mods) {
   if (!empty($date)) {
     $date_time = new DateTime($date);
     $output['accessed']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))));
-  }
+  }     
   else {
     $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCaptured");
-    $output['accessed']['raw'] = $date;
+    if (!empty($date)) {
+      $output['accessed']['raw'] = $date;
+    }
   }
+
   $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued[@encoding = 'iso8601']");
   if (!empty($date)) {
     $date_time = new DateTime($date);
-    $output['issued']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))));
+    $output['issued']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))
+));
   }
   else {
     $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued");
-    $output['issued']['raw'] = $date;
+    if (!empty($date)) {
+      $output['issued']['raw'] = $date;
+    }
+    else {  
+      $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated[@encoding = 'iso8601']");      if (!empty($date)) {
+        $date_time = new DateTime($date);
+        $output['issued']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('
+d'))));
+      }
+      else {
+        $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated");
+        $output['issued']['raw'] = $date;
+      }
+    }
   }
-  $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated[@encoding = 'iso8601']");
-  if (!empty($date)) {
-    $date_time = new DateTime($date);
-    $output['issued']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))));
-  }
-  else {
-    $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated");
+  $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:note[@type = 'date issued']");
+  if(!empty($date)) {
     $output['issued']['raw'] = $date;
   }
   return $output;

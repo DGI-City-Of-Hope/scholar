@@ -839,7 +839,6 @@ class csl_names extends csl_format {
 }
 
 class csl_date extends csl_format {
-
   function init($dom_node, $citeproc) {
     $locale_elements = array();
 
@@ -904,7 +903,7 @@ class csl_date extends csl_format {
 
 
   }
-
+/*
   function render($data, $mode) {
     $date_parts = array();
     $date = '';
@@ -922,7 +921,61 @@ class csl_date extends csl_format {
 
     return $this->format($text);
   }
+
+*/
+
+function render($data, $mode) {
+    $date_parts = array();
+    $date = '';
+    $text = '';
+
+    if (($var = $this->variable) && isset($data->{$var})) {
+      $date_data =& $data->{$var}; 
+      $date = NULL;
+      //$date = $date_data->{'date-parts'}[0]; 
+      if (isset($date_data->{'raw'})) {
+        //dd($data->{$var}, 'Data');
+        $date = $date_data->{'raw'};
+        //dd($date, 'Raw date');
+        require_once(dirname(__FILE__) .'/CSL_Dateparser.php');
+        $parser = CSL_DateParser::getInstance($this->elements);
+        $parser->returnAsArray();
+        $date = $parser->parse($date);
+        //dd($date, 'Parsed date');
+      }
+      
+      //TODO:  This only deals with the first datepart; should be able to specify a range...
+      if (empty($date) && !empty($date_data->date_parts[0])) {  //Not raw, and date_parts in input
+        $date = $date->date_parts[0]; 
+      }
+      elseif (is_array($date) && array_key_exists('date-parts', $date)) { //Was raw, get the parsed date-parts
+        $date = $date['date-parts'][0];
+      }
+      
+      if (is_array($date) && array_key_exists('literal', $date)) {
+        $text = $date['literal'];
+      }
+      elseif (is_object($date) && isset($date->literal)) {
+        $text = $date->literal;
+      }
+      
+      if (empty($text) && !empty($date)) {
+        foreach ($this->elements as $element) {
+          $date_parts[] = $element->render($date, $mode);
+        }
+        $text = implode('', $date_parts);
+      }
+    }
+    else {
+      $text = $this->citeproc->get_locale('term', 'no date');
+    }
+
+    return $this->format($text);
+  }
+
 }
+
+
 
 class csl_date_part extends csl_format {
 

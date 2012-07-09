@@ -91,7 +91,7 @@ class CitationExporter {
         }
         curl_exec($curl_handle);
         curl_close($curl_handle);
-      }
+      } 
       else {
         drupal_goto($redirect);
         exit();
