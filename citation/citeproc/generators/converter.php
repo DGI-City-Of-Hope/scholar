@@ -48,6 +48,33 @@ function add_mods_namespace(SimpleXMLElement &$mods) {
   }
 }
 
+/**
+ * Coerce data into the proper JSON-like format, recursively.
+ */
+function _citeproc_array_to_object($in) {
+  if (!is_array($in)) {
+    return $in;
+  }
+  elseif (count($in) > 0 && count(array_filter(array_keys($in), 'is_int')) == count($in)) {
+    foreach ($in as &$value) {
+      $value = _citeproc_array_to_object($value);
+    }
+    return $in;
+  }
+  elseif (count($in) > 0 && count(array_filter(array_keys($in), 'is_string')) == count($in)) {
+    $obj = new stdClass();
+    dsm($in,"InNNNN");
+    foreach ($in as $key->$val) {
+        
+      $obj->$key = _citeproc_array_to_object($val);
+    }
+    return $obj;
+  }
+  else {
+    return FALSE;
+  }
+}
+
 function convert_mods_to_citeproc_jsons($mods_in) {
   /**
    * FROM HERE ON IN, WE'RE DOING XPATH QUERIES AND POPULATING CSL VARIABLES.
@@ -511,8 +538,8 @@ function convert_mods_to_citeproc_json_dates(SimpleXMLElement $mods) {
   $output = array();
   $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCaptured[@encoding = 'iso8601']");
   if (!empty($date)) {
-    $date_time = new DateTime($date);
-    $output['accessed']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))));
+    $date_time = new DateTime($date);    
+$output['accessed']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))));
   }     
   else {
     $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCaptured");
@@ -524,8 +551,10 @@ function convert_mods_to_citeproc_json_dates(SimpleXMLElement $mods) {
   $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued[@encoding = 'iso8601']");
   if (!empty($date)) {
     $date_time = new DateTime($date);
-    $output['issued']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))
-));
+    $date_parts = explode('-', $date);
+    $date_parts = array_map(create_function('$value', 'return (int)$value;'),$date_parts);
+    //$output['issued']['raw'] = $date;
+    $output['issued']['date-parts'] = array($date_parts);
   }
   else {
     $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued");
@@ -533,7 +562,8 @@ function convert_mods_to_citeproc_json_dates(SimpleXMLElement $mods) {
       $output['issued']['raw'] = $date;
     }
     else {  
-      $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated[@encoding = 'iso8601']");      if (!empty($date)) {
+      $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated[@encoding = 'iso8601']");      
+      if (!empty($date)) {
         $date_time = new DateTime($date);
         $output['issued']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('
 d'))));
@@ -543,10 +573,6 @@ d'))));
         $output['issued']['raw'] = $date;
       }
     }
-  }
-  $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:note[@type = 'date issued']");
-  if(!empty($date)) {
-    $output['issued']['raw'] = $date;
   }
   return $output;
 }
