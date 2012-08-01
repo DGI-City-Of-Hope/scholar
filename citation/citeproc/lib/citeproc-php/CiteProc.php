@@ -64,7 +64,7 @@ class citeproc {
 
       $macro_nodes = $csl_doc->getElementsByTagName('macro');
       if ($macro_nodes) {
-        dsm("here1");
+        //dsm("here1");
         $this->macros = new csl_macros($macro_nodes, $this);
         
       }
@@ -90,15 +90,15 @@ class citeproc {
       case  'bibliography':
       default:
         $text .=  (isset($this->bibliography))? $this->bibliography->render($data) : '';
-        dsm("texttext:$text");
+        //dsm("texttext:$text");
         break;
     }
     return $text;
   }
 
   function render_macro($name, $data, $mode) {
-      dsm("here2name: $name");
-      dsm($data,"data");
+      //dsm("here2name: $name");
+      //dsm($data,"data");
     return $this->macros->render_macro($name, $data, $mode);
   }
 
@@ -858,10 +858,9 @@ class csl_names extends csl_format {
 class csl_date extends csl_format {
   function init($dom_node, $citeproc) {
     $locale_elements = array();
-    dsm("called....csl_date");
-    dsm($this,"this");
+    //dsm("called....csl_date");
+    //dsm($this,"this");
     if ($form = $this->form) {
-        dsm("not called w/ any style");
       $local_date = $this->citeproc->get_locale('date_options', $form);
       $dom_elem = dom_import_simplexml($local_date[0]);
       if ($dom_elem) {
@@ -918,8 +917,8 @@ class csl_date extends csl_format {
       }
     }
     else {
-        dsm("csl_date else");
-        dsm(parent,"parent!!");
+        //dsm("csl_date else");
+        //dsm(parent,"parent!!");
         //error_log("else this->form");
         parent::init($dom_node, $citeproc);
     }
@@ -928,7 +927,7 @@ class csl_date extends csl_format {
   }
 
 function render($data, $mode) {
-    dsm("csl_date_Render");
+    //dsm("csl_date_Render");
     $date_parts = array();
     $date = '';
     $text = '';
@@ -950,20 +949,20 @@ function render($data, $mode) {
       //TODO:  This only deals with the first datepart; should be able to specify a range...
       if (empty($date) && !empty($date_data->{'date-parts'}[0])) {  //Not raw, and date_parts in input
         $date = $date->date_parts[0];
-        dsm("here1");
+        //dsm("here1");
       }
       elseif (is_array($date) && array_key_exists('date-parts', $date)) { //Was raw, get the parsed date-parts
         $date = $date['date-parts'][0];
-        dsm("here2");
+        //dsm("here2");
       }
       
       if (is_array($date) && array_key_exists('literal', $date)) {
         $text = $date['literal'];
-        dsm("here3");
+        //dsm("here3");
       }
       elseif (is_object($date) && isset($date->literal)) {
         $text = $date->literal;
-        dsm("here4");
+        //dsm("here4");
       }
       
       if (empty($text) && !empty($date)) {
@@ -976,7 +975,7 @@ function render($data, $mode) {
     else {
       $text = $this->citeproc->get_locale('term', 'no date');
     }
-    dsm("return text:$text");
+    //dsm("return text:$text");
     return $this->format($text);
   }
 

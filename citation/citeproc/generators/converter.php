@@ -138,7 +138,7 @@ function convert_mods_to_citeproc_jsons($mods_in) {
     if($output['type'] == 'book') {
     	unset($output['container-title']);
     	unset($output['page']);
-	   unset($output['publisher-place']);
+	//unset($output['publisher-place']);
     }
     return $output;
   }
@@ -547,6 +547,12 @@ function convert_mods_to_citeproc_json_name_role(SimpleXMLElement $name, array $
  */
 function convert_mods_to_citeproc_json_dates(SimpleXMLElement $mods) {
   $output = array();
+  $season_name = array();
+  $season_name[1] = "Spring";
+  $season_name[2] = "Summer";
+  $season_name[3] = "Fall";
+  $season_name[4] = "Winter";
+  
   $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCaptured[@encoding = 'iso8601']");
   if (!empty($date)) {
     $date_time = new DateTime($date);    
@@ -560,11 +566,21 @@ $output['accessed']['date-parts'] = array(array(intval($date_time->format('Y')),
   }
 
   $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued[@encoding = 'iso8601']");
+  $season = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateOther[@type = 'season']");
+  dsm($season, "Season....");
   if (!empty($date)) {
-    $date_time = new DateTime($date);
+    $date_time = new DateTime($date); 
     $date_parts = explode('-', $date);
     $date_parts = array_map(create_function('$value', 'return (int)$value;'),$date_parts);
-    $output['issued']['date-parts'] = array($date_parts);
+    if(!empty($season) && count($date_parts) == 1) {
+        
+        $output['issued']['date-parts'] = array($date_parts[0], "season-04");
+        dsm($output['issued'],"date parts");
+    }
+    else {
+        $output['issued']['date-parts'] = array($date_parts);
+    }
+    
   }
   else {
     $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued");

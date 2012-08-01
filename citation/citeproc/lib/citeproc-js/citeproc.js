@@ -9908,7 +9908,10 @@ CSL.Util.FlipFlopper.prototype.addFlipFlop = function (blob, fun) {
 CSL.Output.Formatters = {};
 CSL.getSafeEscape = function(outputModeOpt, outputArea) {
     if (["bibliography", "citation"].indexOf(outputArea) > -1) {
-        return CSL.Output.Formats[outputModeOpt].text_escape;
+        //return CSL.Output.Formats[outputModeOpt].text_escape;
+        return function (txt) {
+            return CSL.Output.Formats[outputModeOpt].text_escape(txt).replace(/\u202f/g, '<span style="white-space:nowrap">&thinsp;</span>');
+        }
     } else {
         return function (txt) { return txt; };
     }
