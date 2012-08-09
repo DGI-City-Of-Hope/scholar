@@ -19,6 +19,7 @@ function citation_exporter_batch_get_ris_operations(array $pids) {
   $temp_file_dir = file_directory_temp();
   $temp_mods_file = file_create_filename("mods.xml", $temp_file_dir);
   $temp_pids_file = file_create_filename("pids.txt", $temp_file_dir);
+  
   citation_exporter_batch_store_pids_in_file($temp_pids_file, $pids);
   $total = count($pids);
   $mods = new DOMDocument();
@@ -48,7 +49,9 @@ function _citation_exporter_batch_combine_mods($filename, array $pids) {
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   $mods = new DOMDocument();
   $mods->load($filename);
+  //dsm($pids,"PIDss..");
   foreach ($pids as $pid) {
+      
     $item = new Fedora_Item($pid);
     if ($item->exists() && isset($item->datastreams['MODS'])) {
       $datastream = $item->get_datastream_dissemination('MODS');
@@ -61,6 +64,7 @@ function _citation_exporter_batch_combine_mods($filename, array $pids) {
       }
     }
   }
+  //dsm($mods,"MODS DOC");
   $mods->save($filename);
 }
 
@@ -73,10 +77,13 @@ function _citation_exporter_batch_combine_mods($filename, array $pids) {
  *   The batch processes context.
  */
 function citation_exporter_batch_convert_mods_to_ris($mods_filename, array &$context) {
+    //dsm($mods_filename,"MODS FILKE NAME");
+    //dsm(file_get_contents($mods_filename),"MODS FILE content");
   module_load_include('inc', 'bibutils', 'Bibutils');
   $temp_file_dir = file_directory_temp();
   $ris_filename = file_create_filename("ris_export.ris", $temp_file_dir);
   if (Bibutils::Convert($mods_filename, 'MODS', $ris_filename, 'RIS')) {
+      dsm(file_get_contents($ris_filename),"RIS FILE CONTENTS");
     $context['results']['filename'] = $ris_filename;
     $context['results']['mime_type'] = 'application/x-Research-Info-Systems';
     $context['results']['download_filename'] = 'export.ris';

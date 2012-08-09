@@ -12,15 +12,15 @@
  */
 
 /**
- * Converts the MODS to a JSON object that repersents a Citataion.
+ * Converts the MODS to a JSON object that represents a Citataion.
  * 
  * @param string $mods
  *   A MODS Document.
- * @param int $id
+ * @param mixed $key within the array.
  *   The id of the citation object to create.
  * 
  * @return string
- *   A JSON encoded string, that repersents the Citataion.
+ *   A JSON encoded string, that represents the Citataion.
  */
 function convert_mods_to_citeproc_jsons_escape(&$item, $key) {
   if (is_string($item)) {
@@ -53,27 +53,20 @@ function add_mods_namespace(SimpleXMLElement &$mods) {
  */
 function _citeproc_array_to_object($in) {
   if (!is_array($in)) {
-      dsm($in,"Not array");
     return $in;
   }
   elseif (count($in) > 0 && count(array_filter(array_keys($in), 'is_int')) == count($in)) {
     foreach ($in as &$value) {
       $value = _citeproc_array_to_object($value);
-      dsm($value,"2nd elsif");
     }
     return $in;
   }
   elseif (count($in) > 0 && count(array_filter(array_keys($in), 'is_string')) == count($in)) {
     $obj = new stdClass();
-    //dsm($in,"InNNNN");
     foreach ($in as $key=>$val) {
-      if($val) {
-          dsm($val,"Value....");
-          $obj->$key = _citeproc_array_to_object($val);
-      }
-else {
-    dsm($key,"KEY");
-}
+        if($val) {
+      $obj->$key = _citeproc_array_to_object($val);
+        }
     }
     return $obj;
   }
@@ -299,7 +292,8 @@ function convert_mods_to_citeproc_json_page(SimpleXMLElement $mods) {
  *   The type property for the Citation.
  */
 function convert_mods_to_citeproc_json_type(SimpleXMLElement $mods) {
- /**
+  /**
+   * @auth='endnote'-- seems to map to the CSL types easier
    * @auth='marcgt' -- marcgt should be the preferred authority
    * @auth='local'  -- actually better at differentiating some types
    * not(@auth)     -- unauthoritative types from Bibutils
@@ -309,64 +303,106 @@ function convert_mods_to_citeproc_json_type(SimpleXMLElement $mods) {
    *  //mods/genre[@authority='marcgt'] == 'book' means "Book" 
    *  *UNLESS* //mods/relatedItem[type='host']/titleInfo/title exists
    *  *OR*     //mods/genre[@authority='local'] == 'bookSection'
-   */ 
+   */
   module_load_include('inc', 'citeproc', 'generators/mods_csl_type_conversion');
   module_load_include('inc', 'citeproc', 'generators/marcrelator_conversion');
-  $output = NULL;
-// First try: item's local marcgt genre.
+  
+  // First try:  Let's map the a provided Endnote genre...
+  $output = _get_endnote_type($mods);
+  
+  // Second try: item's local marcgt genre.
+  if (empty($output)) {
+    $output = _get_marcgt_type($mods);
+  }
+  
+  // Third try: item's parent marcgt genre (often applies to the original item itself).
+  if (empty($output)) {
+    $output = _get_related_marcgt_type($mods);
+  }
+  // Last try: other authority types (most likely Zotero local)
+  if (empty($output)) {
+    $output = _get_other_types($mods);
+  }
+  return $output;
+}
+
+/**
+ *  Map from an EndNote 'ref-type' to a CSL type.  (Seems to map better than marcgt)
+ *  ('ref-type' were added manually to the MODS as top-level genre with the authority 
+ *  set to 'endnote')
+ *  TODO:  Map all default types
+ *
+ */
+function _get_endnote_type(SimpleXMLElement $mods) {
+  $output = '';
+  
+  $type_map = array(
+    'Book Section' => 'chapter',
+    'Book' => 'book',
+    'Edited Book' => 'book',
+    'Journal Article' => 'article-journal',
+    'Working Paper' => 'chapter', //XXX:  This is a custom one for FJM...  Might need a hook?
+    'Thesis' => 'thesis'
+  );
+  $types = $mods->xpath("/mods:mods/mods:genre[@authority='endnote']");
+  
+  if (!empty($types)) {
+    $type = $types[0];
+    $output = $type_map[(string)$type];
+  }
+  
+  return $output;
+}
+function _get_marcgt_type(SimpleXMLElement $mods) {
+  $output = '';
   $type_marcgt = $mods->xpath("/mods:mods/mods:genre[@authority='marcgt']");
   if (!empty($type_marcgt)) {
-    $interim_type = & $type_marcgt[0];
+    $interim_type =& $type_marcgt[0];
     add_mods_namespace($interim_type);
     if (!strcasecmp($interim_type, 'book')) {
       $host_titles = $interim_type->xpath("../mods:relatedItem[@type='host']/mods:titleInfo/mods:title");
       if (!empty($host_titles)) {
         // This is but a chapter in a book
-       $output = 'chapter';
+        $output = 'chapter';
       }
       else {
         $output = 'book';
       }
     }
     else {
-      $output = marcgt_to_csl((string) $interim_type);
-    }
-    $csl_type = marcgt_to_csl((string) $interim_type);
-  }
-  // Check anon before marcgt
-  if (empty($output)) {
-    $type_related = $mods->xpath("/mods:mods/mods:relatedItem/mods:genre[not(@authority)]");
-    if (!empty($type_related)) {
-      $interim_type = (string) $type_related[0];
-      if (!strcasecmp($interim_type, 'article-journal')) {
-        $output = 'article-journal';
-      }
-    }
-  }
-  // Second try: item's parent marcgt genre (often applies to the original item itself).
-  if (empty($output)) {
-    $type_marcgt_related = $mods->xpath("/mods:mods/mods:relatedItem/mods:genre[@authority='marcgt']");
-    if (!empty($type_marcgt_related)) {
-      $interim_type = (string) $type_marcgt_related[0];
-
-      if (!strcasecmp($interim_type, 'book')) {
-        $output = 'chapter';
-      }
-      else {
-        $output = marcgt_to_csl($interim_type);
-      }
-    }
-  }
-  // Third try: other authority types (most likely Zotero local)
-  if (empty($output)) {
-    $types_local_auth = $mods->xpath("/mods:mods/mods:genre[not(@authority='marcgt')]");
-    while (empty($output) && list( $num, $type ) = each($types_local_auth)) {
-      $interim_type = (string) $type;      
-      $output = mods_genre_to_csl_type($interim_type);
+      $output = marcgt_to_csl((string)$interim_type);
     }
   }
   return $output;
 }
+function _get_related_marcgt_type(SimpleXMLElement $mods) {
+  $output = '';
+  
+  $type_marcgt_related = $mods->xpath("/mods:mods/mods:relatedItem/mods:genre[@authority='marcgt']");
+  if (!empty($type_marcgt_related)) {
+    $interim_type = (string) $type_marcgt_related[0];
+    if (!strcasecmp($interim_type, 'book')) {
+      $output = 'chapter';
+    }
+    else {
+      $output = marcgt_to_csl($interim_type);
+    }
+  }
+  
+  return $output;
+}
+function _get_other_types(SimpleXMLElement $mods) {
+  $output = '';
+  
+  $types_local_auth = $mods->xpath("/mods:mods/mods:genre[not(@authority='marcgt' or @authority='endnote')]");
+  while (empty($output) && list( $num, $type ) = each($types_local_auth)) {
+    $interim_type = (string) $type;
+    $output = mods_genre_to_csl_type($interim_type);
+  }
+  
+  return $output;
+}
+
 
 /**
  * Gets the type property for the Citation.
@@ -405,7 +441,7 @@ function convert_mods_to_citeproc_json_names(SimpleXMLElement $mods) {
    */
   $queries = array(
     0 => array(
-      '/mods:mods/mods:name', // Path
+      '/mods:mods/mods:name[normalize-space(mods:namePart)]', // Path
       'author', // Default Role
       array(// Valid Roles
         'editor' => 'editor',
@@ -539,7 +575,42 @@ function convert_mods_to_citeproc_json_name_role(SimpleXMLElement $name, array $
     }
     return array_key_exists($role, $valid_roles) ? $valid_roles[$role] : false;
   }
-  return false;
+  return $default_role;
+}
+
+function _try_parse_date(&$output, $date_string) {
+  //FIXME:  Need a more reliable way to get the date info...
+  //XXX:  Short circuited with FALSE to use the "else" block...
+  $date_parts = explode('-',$date_string);
+  //$output['season'] = 1;
+  $output['date-parts'] = array(array_map(create_function('$value', 'return (int)$value;'),$date_parts));
+
+  
+  //$output['raw'] = $date_string;
+  /*  
+  if (FALSE && ($parsed = date_parse($date_string))) {
+    //dd($parsed, 'Parsed date');
+    $output['date-parts'] = array(
+      array(
+        $parsed['year'],
+        $parsed['month'],
+        $parsed['day'],
+      )
+    );
+    dsm($output,"output date issued");
+  }
+  else {
+    module_load_include('php', 'citeproc', 'lib/citeproc-php/CSL_Dateparser');
+    $parser = CSL_Dateparser::getInstance();
+    //XXX:  Short circuited with FALSE to test the JS parser...
+    if (FALSE && $parsed = $parser->parse($date_string)) {
+      $output = $parsed;
+    }
+    else {
+      $output['raw'] = $date_string;
+    }
+  }
+   */
 }
 
 /**
@@ -547,58 +618,25 @@ function convert_mods_to_citeproc_json_name_role(SimpleXMLElement $name, array $
  */
 function convert_mods_to_citeproc_json_dates(SimpleXMLElement $mods) {
   $output = array();
-  $season_name = array();
-  $season_name[1] = "Spring";
-  $season_name[2] = "Summer";
-  $season_name[3] = "Fall";
-  $season_name[4] = "Winter";
+  $season = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateOther[@type='season']");
+  $date_captured = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCaptured");
+  if (!empty($date_captured)) {
+    _try_parse_date($output['accessed'], $date_captured);
+  }
   
-  $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCaptured[@encoding = 'iso8601']");
-  if (!empty($date)) {
-    $date_time = new DateTime($date);    
-$output['accessed']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('d'))));
-  }     
-  else {
-    $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCaptured");
-    if (!empty($date)) {
-      $output['accessed']['raw'] = $date;
-    }
+  $date_issued = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued");
+  if (!empty($date_issued)) {
+    _try_parse_date($output['issued'], $date_issued);
   }
-
-  $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued[@encoding = 'iso8601']");
-  $season = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateOther[@type = 'season']");
-  dsm($season, "Season....");
-  if (!empty($date)) {
-    $date_time = new DateTime($date); 
-    $date_parts = explode('-', $date);
-    $date_parts = array_map(create_function('$value', 'return (int)$value;'),$date_parts);
-    if(!empty($season) && count($date_parts) == 1) {
-        
-        $output['issued']['date-parts'] = array($date_parts[0], "season-04");
-        dsm($output['issued'],"date parts");
-    }
-    else {
-        $output['issued']['date-parts'] = array($date_parts);
-    }
-    
+  
+  $date_created = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated");
+  if (!empty($date_created) && empty($output['issued'])) {
+    _try_parse_date($output['issued'], $date_created);
   }
-  else {
-    $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateIssued");
-    if (!empty($date)) {
-      $output['issued']['raw'] = $date;
-    }
-    else {  
-      $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated[@encoding = 'iso8601']");      
-      if (!empty($date)) {
-        $date_time = new DateTime($date);
-        $output['issued']['date-parts'] = array(array(intval($date_time->format('Y')), intval($date_time->format('m')), intval($date_time->format('
-d'))));
-      }
-      else {
-        $date = convert_mods_to_citeproc_json_query($mods, "/mods:mods/mods:originInfo/mods:dateCreated");
-        $output['issued']['raw'] = $date;
-      }
-    }
+  
+  if(!empty($season) && count($output['issued']['date-parts'][0]) == 1) {
+      $seasons = array('','Spring','Summer','Fall','Winter');
+      $output['issued']['season'] = (string)array_search($season, $seasons);
   }
   return $output;
 }

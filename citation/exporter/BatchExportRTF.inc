@@ -77,6 +77,7 @@ function _citation_exporter_batch_append_citations_to_text_file(array $pids, $fi
       $mods = trim($mods);
       if (!empty($mods)) {
         $json = _citeproc_array_to_object(convert_mods_to_citeproc_jsons($mods));
+        dsm($json,"JSON");
         $text = $citeproc->render($json, 'bibliography');
         $text  = filter_xss($text, array('i', 'strong','br','span','div','b'));
         if ($file) {

@@ -52,6 +52,7 @@ function citation_exporter_batch_export(array $pids, $style, $file_format) {
  * @param array $pids 
  */
 function citation_exporter_batch_store_pids_in_file($filename, array $pids) {
+    dsm(count($pids),"PIDs");
   $handle = fopen($filename, 'wb');
   foreach ($pids as $pid) {
     fwrite($handle, trim($pid) . "\n");
