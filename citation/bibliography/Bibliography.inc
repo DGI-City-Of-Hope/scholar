@@ -59,7 +59,7 @@ class Bibliography {
       $objectHelper = new ObjectHelper();
       $content_models = $objectHelper->get_content_models_list($pid);
       foreach ($content_models as $content_model) {
-        if ($content_model->pid == 'ir:citationCModel') {
+        if ($content_model->pid == 'ir:citationCModel' || $content_model->pid == 'coh:publicationCModel') { //fix this line for manual ingests
           return TRUE;
         }
       }

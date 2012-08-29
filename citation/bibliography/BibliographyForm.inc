@@ -253,22 +253,30 @@ function _islandora_bibliography_get_format($form_state) {
  *   The drupal form state.
  */
 function islandora_bibliography_form_preview(array $form, array &$form_state) {
-  module_load_include('inc', 'citeproc', 'CiteProcJSBibliography');
+  //module_load_include('inc', 'citeproc', 'CiteProcJSBibliography');
   drupal_add_css(drupal_get_path('module', 'islandora_bibliography') . '/css/export.css');
+  
+  module_load_include('inc', 'citeproc', 'BatchExportRTF');
+  
   $selections = _islandora_bibliography_get_selections($form_state);
   $style_name = _islandora_bibliography_get_style($form_state);
-  $style = citeproc_style($style_name);
-  $bibliography = new CiteProcJSBibliography($style);
+  //$style = citeproc_style($style_name);
+  //$bibliography = new CiteProcJSBibliography($style);
+  $output = "";
   foreach ($selections as $pid) {
-    $mods = islandora_bibilgraphy_form_get_mods($pid);
-    if ($mods) {
-      $citation = citeproc_citation_from_mods($mods);
-      $bibliography->addCitation($citation);
-    }
+    if($text = _citation_exporter_batch_get_citation_as_text($pid, $style_name)) {
+      $output .= nl2br($text)."<br /><br />";
+    }  
+      
+    //$mods = islandora_bibilgraphy_form_get_mods($pid);
+    //if ($mods) {
+    //  $citation = citeproc_citation_from_mods($mods);
+    //  $bibliography->addCitation($citation);
+    //}
   }
-  $output = $bibliography->render();
-  $output .= l(t('Return to the Bibliography.'), 'bibliography');
   
+  //$output = $bibliography->render();
+  $output .= l(t('Return to the Bibliography.'), 'bibliography');
   print theme('page', $output, FALSE);
   exit();
 }

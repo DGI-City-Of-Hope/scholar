@@ -71,7 +71,6 @@ class Bibutils {
     $transform->load($transform_filename);
     $doc = new DOMDocument();
     $doc->load($filename);
-    dsm($doc,"DOC DOC doc");
     
     if (isset($doc->documentElement)) {
       $xslt = new XSLTProcessor();
@@ -115,17 +114,13 @@ class Bibutils {
    *   TRUE if successful, FALSE otherwise.
    */
   public static function Convert($src, $src_format, $dest, $dest_format) {
-      dsm($src,"SOURCE MODS");
     $command = self::GetCommand($src_format, $dest_format);
-    dsm($command,"COMMAND");
     if ($command) {
       $command = "$command $src 2>&- 1> $dest";
       module_invoke_all('preprocess_bibutils_convert', $src, $src_format, $dest_format);
       list($exit_status, $output) = self::Execute($command);
       if ($exit_status == 0) {
         $results = module_invoke_all('postprocess_bibutils_convert', $src, $src_format, $dest, $dest_format);
-        dsm($results,"RESULTS HERE");
-        error_log(print_r($results, TRUE));
         return!in_array(FALSE, $results, TRUE); // No post process function returned false.
       }
     }

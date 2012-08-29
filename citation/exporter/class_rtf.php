@@ -311,8 +311,14 @@ class rtf {
 
   // Parse the text input to RTF
   function parseDocument() {
-    //$doc_buffer = $this->specialCharacters(html_entity_decode($this->document));
-    $doc_buffer = html_entity_decode($this->document, ENT_QUOTES, 'UTF-8');
+    $doc_buffer = html_entity_decode($this->document, ENT_QUOTES, 'UTF-8');        
+    $super = array("⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹");//⁰¹²³⁴⁵⁶⁷⁸⁹";
+    $sub = array("₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉");//₀₁₂₃₄₅₆₇₈₉;
+    
+    for($i=0; $i <= count($super); $i++) {
+        $doc_buffer = str_replace($super[$i], "<sup>$i</sup>", $doc_buffer);
+        $doc_buffer = str_replace($sub[$i], "<sub>$i</sub>", $doc_buffer);
+    }
     $doc_buffer = utf8_decode($doc_buffer);
     $doc_buffer = $this->specialCharacters($doc_buffer);
     if (preg_match("/<ul>(.*?)<\/ul>/mi", $doc_buffer)) {
@@ -329,10 +335,6 @@ class rtf {
     $doc_buffer = preg_replace("/<strike>(.*?)<\/strike>/mi", "\\strike \\1\\strike0 ", $doc_buffer);
     $doc_buffer = preg_replace("/<sub>(.*?)<\/sub>/mi", "{\\sub \\1}", $doc_buffer);
     $doc_buffer = preg_replace("/<sup>(.*?)<\/sup>/mi", "{\\super \\1}", $doc_buffer);
-
-    //$doc_buffer = preg_replace("/<H1>(.*?)<\/H1>/mi", "\\pard\\qc\\fs40 \\1\\par\\pard\\fs{$this->font_size} ", $doc_buffer);
-    //$doc_buffer = preg_replace("/<H2>(.*?)<\/H2>/mi", "\\pard\\qc\\fs32 \\1\\par\\pard\\fs{$this->font_size} ", $doc_buffer);
-
     $doc_buffer = preg_replace("/<h1>(.*?)<\/h1>/mi", "\\fs48\\b \\1\\b0\\fs{$this->font_size}\\par ", $doc_buffer);
     $doc_buffer = preg_replace("/<h2>(.*?)<\/h2>/mi", "\\fs36\\b \\1\\b0\\fs{$this->font_size}\\par ", $doc_buffer);
     $doc_buffer = preg_replace("/<h3>(.*?)<\/h3>/mi", "\\fs27\\b \\1\\b0\\fs{$this->font_size}\\par ", $doc_buffer);
