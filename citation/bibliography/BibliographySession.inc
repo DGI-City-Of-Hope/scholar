@@ -45,7 +45,13 @@ class BibliographySession {
    */
   public static function AddCitation($pid) {
     $table = &self::GetSessionTable();
-    $table[$pid] = $pid;
+    if(!isset($table[$pid])) {
+      $table[$pid] = $pid;
+      return TRUE;
+    }
+    else {
+      return FALSE;
+    }
   }
 
   /**

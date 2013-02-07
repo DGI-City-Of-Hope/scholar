@@ -18,9 +18,18 @@
  *   The drupal form.
  */
 function islandora_bibliography_form(array &$form_state) {
+  global $pager_page_array, $pager_total, $pager_total_items;
   module_load_include('inc', 'islandora_bibliography', 'Bibliography');
+  $page = isset($_GET['page']) ? trim($_GET['page']) : '';
   citation_exporter_include_download_redirect();
   $pids = Bibliography::GetCitations();
+  $limit = 100;
+  $total = count($pids);
+  $pager_page_array = array($page);
+  $pager_total_items[0] = $total;
+  $pager_total[0] = ceil($pager_total_items[0] / $limit);
+  $pager_page_array[0] = $page = max(0, min((int)$pager_page_array[0], ((int)$pager_total[0]) - 1));
+  $start = $page * $limit;
   if (empty($pids)) {
     islandora_bibilgraphy_form_empty_page();
   }
@@ -33,62 +42,79 @@ function islandora_bibliography_form(array &$form_state) {
         '#type' => 'fieldset',
         '#title' => t('My Citations'),
         '#description' => t('<p>Here you can remove or export citations from your bibliography.</p>'),
-        'table' => islandora_bibilgraphy_form_table($pids),
-        'preview_title' => array(
-          '#value' => t('Preview Citations'),
-          '#prefix' => '<h4>',
-          '#suffix' => '</h4>'
+        '#tree' => TRUE,
+        'preview_export_top' => _islandora_bibliography_export_preview_form_stuff($styles),
+        'table' => islandora_bibilgraphy_form_table($pids, $total, $start, $limit),
+        'pager' => array(
+          '#value' => theme('pager', null, $limit, 0, null, 5)
         ),
-        'preview_style' => array(
-          '#title' => t('Style'),
-          '#type' => 'select',
-          '#options' => $styles
-        ),
-        'preview' => array(
-          '#type' => 'submit',
-          '#value' => t('Preview Selected'),
-          '#submit' => array('islandora_bibliography_form_preview')
-        ),
-        'remove' => array(
-          '#type' => 'submit',
-          '#value' => t('Remove Selected'),
-          '#submit' => array('islandora_bibliography_form_remove')
-        ),
-        'export_title' => array(
-          '#value' => t('Export To File'),
-          '#prefix' => '<h4>',
-          '#suffix' => '</h4>'
-        ),
-        'format' => array(
-          '#title' => t('Format'),
-          '#type' => 'select',
-          '#length' => 50,
-          '#options' => array(
-            'RIS' => 'RIS (Endnote format)',
-            'RTF' => 'RTF (word proccessor format)',
-            'PDF' => 'PDF',
-          )
-        ),
-        'style' => array(
-          '#title' => t('Style'),
-          '#type' => 'select',
-          '#options' => $styles
-        ),
-        'export' => array(
-          '#type' => 'submit',
-          '#action' => 'export',
-          '#export' => 'selected',
-          '#value' => t('Export Selected'),
-          '#submit' => array('islandora_bibliography_form_export')
-        )
+        'preview_export_bottom' => _islandora_bibliography_export_preview_form_stuff($styles),
       )
     );
   }
 }
 
+function _islandora_bibliography_export_preview_form_stuff($styles) {
+static $i = 0;
+$i++;
+return array(
+          '#type' => 'fieldset',
+          //'#title' => t('Preview/Export'),
+          '#attributes' => array(
+            'style' => 'border: none;',
+          ),
+          'preview_fs' => array(
+            '#type' => 'fieldset',
+            '#title' => t('Preview/Remove Citations'),
+            'style' => array(
+              '#title' => t('Style'),
+              '#type' => 'select',
+              '#options' => $styles
+            ),
+            'preview' => array(
+              '#type' => 'submit',
+              '#value' => t('Preview Selected'),
+              '#submit' => array('islandora_bibliography_form_preview'),
+	      '#name' => "preview_$i",            ),
+            'remove' => array(
+              '#type' => 'submit',
+              '#value' => t('Remove Selected'), 
+              '#submit' => array('islandora_bibliography_form_remove')
+            ),
+          ),
+          'export_fs' => array(
+            '#type' => 'fieldset',
+            '#title' => t('Export To File'),
+            'format' => array(
+              '#title' => t('Format'),
+              '#type' => 'select',
+              '#length' => 50,
+              '#options' => array(
+                'RIS' => 'RIS (Endnote format)',
+                'RTF' => 'RTF (word proccessor format)',
+                'PDF' => 'PDF',
+              )
+            ),
+            'style' => array(
+              '#title' => t('Style'),
+              '#type' => 'select',
+              '#options' => $styles
+            ),
+            'export' => array(
+              '#type' => 'submit',
+              '#action' => 'export',
+              '#export' => 'selected',
+              '#value' => t('Export Selected'),
+              '#submit' => array('islandora_bibliography_form_export'),
+	      '#name' => "export_$i"
+            )
+          )
+        );
+}
+
 /**
  * The form to render when no citations are in the bibliography.
- * 
+ *
  * @return array
  *   The drupal form
  */
@@ -105,16 +131,22 @@ function islandora_bibilgraphy_form_empty_page() {
 
 /**
  * Generates the table for the bibliography form.
- * 
+ *
  * @param array $pids
  *   A collection of citations within the bibliography.
- * 
+ * @param int $total
+ *   The total number of pids.
+ * @param int $start
+ *   The index of the first pid to render.
+ * @param int $limit
+ *   The number of results in the table.
+ *
  * @return array
  *   The drupal form table definition.
  */
-function islandora_bibilgraphy_form_table(array $pids) {
+function islandora_bibilgraphy_form_table(array $pids, $total, $start = 0, $limit = 10) {
   $table = array(
-    '#header' => array(theme('table_select_header_cell'), t('Title'), t('Author(s)'), ''),
+    '#header' => array(theme('table_select_header_cell'), array('data' => t('Title')), array('data' => t('Author(s)')), array('data' => '', 'colspan' => 1)),
     '#theme' => THEME_BIBLIOGRAPHY_FORM_TABLE,
     '#tree' => TRUE,
     'rows' => array(),
@@ -123,30 +155,34 @@ function islandora_bibilgraphy_form_table(array $pids) {
       '#options' => array_fill_keys($pids, ''),
     ),
   );
+  $row_count = 0;
   $rows = &$table['rows'];
+  $pids = array_splice($pids, $start, $limit);
   foreach ($pids as $pid) {
     list($title, $authors) = islandora_bibilgraphy_form_get_title_authors($pid);
     $rows[] = array(
       '#pid' => $pid,
-      'title' => array('#value' => check_plain($title)),
+      'title' => array('#value' => l(check_plain($title), "fedora/repository/$pid")),
       'author' => array('#value' => check_plain($authors)),
       'remove' => array(
         '#type' => 'submit',
         '#value' => t('Remove'),
+        '#name' => 'remove-citation' . $row_count, // Give a unique name to each button
         '#pid' => $pid,
         '#submit' => array('islandora_bibliography_form_remove_citation_submit')
       )
     );
+    $row_count++;
   }
   return $table;
 }
 
 /**
  * Get the title and author of a given citation.
- * 
+ *
  * @param string $pid
  *   A citations within the bibliography.
- * 
+ *
  * @return array
  *   Where the first key is the title and the second is the authors.
  */
@@ -157,7 +193,7 @@ function islandora_bibilgraphy_form_get_title_authors($pid) {
     $mods = simplexml_import_dom($mods);
     $mods->registerXPathNamespace('mods', 'http://www.loc.gov/mods/v3');
     $title = implode(' ', $mods->xpath('/mods:mods/mods:titleInfo/mods:title'));
-    $authors = implode(' ', $mods->xpath('/mods:mods/mods:name/mods:role[mods:roleTerm = "author"]/../mods:namePart[@type="family"]'));
+    $authors = implode(', ', $mods->xpath('/mods:mods/mods:name/mods:role[mods:roleTerm = "author"]/../mods:namePart[@type="family"]'));
   }
   return array($title, $authors);
 }
@@ -177,6 +213,37 @@ function islandora_bibliography_form_remove_citation_submit(array $form, array &
   drupal_set_message(t('Removed Citation'));
 }
 
+function _islandora_bibliography_get_selections($form_state) {
+  $selections = $form_state['values']['fieldset']['table']['selections'];
+  return array_keys(array_filter($selections));
+}
+
+/**
+ *  Get the style by looking relative to the parent of the button.
+ */
+function _islandora_bibliography_get_style($form_state) {
+  $parents = $form_state['clicked_button']['#array_parents'];
+  $parents = array_slice($parents, 0, -1);
+  $temp = $form_state['values'][array_shift($parents)];
+  foreach ($parents as $parent) {
+    $temp = $temp[$parent];
+  }
+  return $temp['style'];
+}
+
+/**
+ *  Get the format by looking relative to the parent of the button.
+ */
+function _islandora_bibliography_get_format($form_state) {
+  $parents = $form_state['clicked_button']['#array_parents'];
+  $parents = array_slice($parents, 0, -1);
+  $temp = $form_state['values'][array_shift($parents)];
+ foreach ($parents as $parent) {
+     $temp = $temp[$parent];
+  }
+  return $temp['format'];
+}
+
 /**
  * Previews the selected citations from the bibliography.
  *
@@ -186,21 +253,29 @@ function islandora_bibliography_form_remove_citation_submit(array $form, array &
  *   The drupal form state.
  */
 function islandora_bibliography_form_preview(array $form, array &$form_state) {
-  module_load_include('inc', 'citeproc', 'CiteProcJSBibliography');
+  //module_load_include('inc', 'citeproc', 'CiteProcJSBibliography');
   drupal_add_css(drupal_get_path('module', 'islandora_bibliography') . '/css/export.css');
-  $selections = $form_state['values']['table']['selections'];
-  $style = citeproc_style($form_state['values']['preview_style']);
-  $bibliography = new CiteProcJSBibliography($style);
-  $selections = array_filter($selections);
-  $selections = array_keys($selections);
+  
+  module_load_include('inc', 'citeproc', 'BatchExportRTF');
+  
+  $selections = _islandora_bibliography_get_selections($form_state);
+  $style_name = _islandora_bibliography_get_style($form_state);
+  //$style = citeproc_style($style_name);
+  //$bibliography = new CiteProcJSBibliography($style);
+  $output = "";
   foreach ($selections as $pid) {
-    $mods = islandora_bibilgraphy_form_get_mods($pid);
-    if ($mods) {
-      $citation = citeproc_citation_from_mods($mods);
-      $bibliography->addCitation($citation);
-    }
+    if($text = _citation_exporter_batch_get_citation_as_text($pid, $style_name)) {
+      $output .= nl2br($text)."<br /><br />";
+    }  
+      
+    //$mods = islandora_bibilgraphy_form_get_mods($pid);
+    //if ($mods) {
+    //  $citation = citeproc_citation_from_mods($mods);
+    //  $bibliography->addCitation($citation);
+    //}
   }
-  $output = $bibliography->render();
+  
+  //$output = $bibliography->render();
   $output .= l(t('Return to the Bibliography.'), 'bibliography');
   print theme('page', $output, FALSE);
   exit();
@@ -214,8 +289,7 @@ function islandora_bibliography_form_preview(array $form, array &$form_state) {
  */
 function islandora_bibliography_form_remove(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_bibliography', 'Bibliography');
-  $selections = array_filter($form_state['values']['table']['selections']);
-  $pids = array_keys($selections);
+  $pids = _islandora_bibliography_get_selections($form_state);
   Bibliography::RemoveCitations($pids);
   drupal_set_message(t('Removed %num Citation(s)', array('%num' => count($pids))));
 }
@@ -228,9 +302,8 @@ function islandora_bibliography_form_remove(array $form, array &$form_state) {
  */
 function islandora_bibliography_form_export(array $form, array &$form_state) {
   module_load_include('inc', 'citation_exporter', 'Batch');
-  $selections = array_filter($form_state['values']['table']['selections']);
-  $pids = array_keys($selections);
-  citation_exporter_batch_export($pids, $form_state['values']['style'], $form_state['values']['format']);
+  $pids = _islandora_bibliography_get_selections($form_state);
+  citation_exporter_batch_export($pids, _islandora_bibliography_get_style($form_state), _islandora_bibliography_get_format($form_state));
   batch_process();
 }
 
@@ -241,7 +314,7 @@ function islandora_bibliography_form_export(array $form, array &$form_state) {
  *
  * @param string $pid
  *   The fedora object to get the MODS from.
- * 
+ *
  * @return DOMDocument
  *   An MODS document if found and non-empty, FALSE otherwise.
  */
@@ -279,7 +352,7 @@ function theme_islandora_bibliography_form_table(array $element) {
     );
     foreach (element_children($setting) as $property) {
       $field = $setting[$property];
-      $fields[] = drupal_render($field);
+      $fields[] = array('data' => drupal_render($field));
     }
     $rows[] = array(
       'data' => $fields,

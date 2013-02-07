@@ -51,6 +51,7 @@
                   <date variable="issued">
                      <date-part name="year" suffix=""/>
                      <date-part name="month" form="short" prefix=" " suffix="" strip-periods="true"/>
+                     <date-part name="season" prefix=" " suffix=""/>
                   </date>
                </if>
                <else>

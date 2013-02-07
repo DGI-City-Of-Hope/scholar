@@ -123,7 +123,7 @@ function scholar_bulk_ingest_file_upload_validate(array $element, array &$form_s
     }
     else { // Only support for one file.
       $mime_type = $_FILES['files']['type']['file'];
-      $valid_types = array('text/xml', 'text/plain', 'application/x-research-info-systems');
+      $valid_types = array('text/xml', 'text/plain', 'application/x-research-info-systems', 'application/octet-stream');
       if (array_search($mime_type, $valid_types) === FALSE) {
         form_error($element, t('The upload file is not the correct type. You must upload a "RIS" or "EndNote XML" document.'));
       }
@@ -186,7 +186,7 @@ function scholar_batch_ingest_endnote_document($filename, $collection_pid, $cont
   if (Bibutils::Convert($endnote_filename, 'EndNoteXML', $mods_filename, 'MODS')) {
     scholar_batch_ingest_mods($mods_filename, $collection_pid, $content_model_pid, array('ENDNOTE' => $endnote_filename));
   }
-  unlink($endnote_filename);
+  //unlink($endnote_filename); Not sure where this is getting deleted.
   unlink($mods_filename);
   $context['sandbox']['progress']++;
   if ($context['sandbox']['progress'] != $context['sandbox']['total']) {

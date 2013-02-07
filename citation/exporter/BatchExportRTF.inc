@@ -51,6 +51,42 @@ function citation_exporter_batch_append_citations_to_text_file($pids_filename, $
 }
 
 /**
+ * Get MODS DS and apply CSL to it
+ * 
+ * @param int $pids
+ *   PID ob ject to get the MODS DS from
+ * @param sting $style 
+ *   The style to apply to the citation.
+ * 
+ * @return string
+ *   MODS DS after CSL has been applied to it
+ */
+function _citation_exporter_batch_get_citation_as_text($pid, $style) {
+  module_load_include('inc', 'fedora_repository', 'api/fedora_item');
+  module_load_include('php', 'citeproc', 'generators/converter');
+  module_load_include('php', 'CiteProc', 'lib/citeproc-php/CiteProc');
+  module_load_include('inc', 'csl', 'CSL');
+  $style = CSL::Get($style);
+  $citeproc = new citeproc($style->saveXML());
+  if($pid) {
+    $item = new Fedora_Item($pid);
+    if ($item->exists() && isset($item->datastreams['MODS'])) {
+      $mods = $item->get_datastream_dissemination('MODS');
+      $mods = trim($mods);
+      if (!empty($mods)) {
+        $json = _citeproc_array_to_object(convert_mods_to_citeproc_jsons($mods));
+        $text = $citeproc->render($json, 'bibliography');
+        $text  = filter_xss($text, array('i', 'strong','br','span','div','b'));
+        if ($text) {
+          return $text;
+        }
+      }
+    }
+  }
+}
+
+
+/**
  * Appends a citation generated from citeproc-php to the provided text file.
  * 
  * @param string $filename
@@ -67,25 +103,28 @@ function _citation_exporter_batch_append_citations_to_text_file(array $pids, $fi
   module_load_include('php', 'citeproc', 'generators/converter');
   module_load_include('php', 'CiteProc', 'lib/citeproc-php/CiteProc');
   module_load_include('inc', 'csl', 'CSL');
-  $style = CSL::Get($style);
-  $citeproc = new citeproc($style->saveXML());
+  //$style = CSL::Get($style);
+  //$citeproc = new citeproc($style->saveXML());
   $file = fopen($filename, 'a');
   foreach ($pids as $pid) {
+      if(($text = _citation_exporter_batch_get_citation_as_text($pid, $style)) && $file) {
+            fwrite($file, $text . "<br/><br/>"); 
+      }
+      /*
     $item = new Fedora_Item($pid);
     if ($item->exists() && isset($item->datastreams['MODS'])) {
       $mods = $item->get_datastream_dissemination('MODS');
       $mods = trim($mods);
       if (!empty($mods)) {
-        $json = convert_mods_to_citeproc_jsons($mods);
-        array_walk_recursive($json, 'convert_mods_to_citeproc_jsons_escape');
-        $json = (object) $json;
-        $citation = json_decode(@json_encode($json)); // HACKKKKK!
-        $text = $citeproc->render($citation, 'bibliography');
+        $json = _citeproc_array_to_object(convert_mods_to_citeproc_jsons($mods));
+        $text = $citeproc->render($json, 'bibliography');
+        $text  = filter_xss($text, array('i', 'strong','br','span','div','b'));
+        
         if ($file) {
           fwrite($file, $text . "<br/><br/>"); // I know the <br/> look out of place but its cause this is an intermediate document and the rtf class will replace them with newlines.
         }
       }
-    }
+    }*/
   }
   fclose($file);
 }

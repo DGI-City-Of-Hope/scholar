@@ -22,7 +22,7 @@ function islandora_bibliography_citation_form(array &$form_state, $pid = NULL) {
   $pid = isset($pid) ? $pid : $form_state['post']['pid'];
   $stored = isset($form_state['post']['stored']) ? $form_state['post']['stored'] : Bibliography::Exists($pid);
   return array(
-    '#action' => '/bibliography/citation',
+    '#action' => url(MENU_BIBLIOGRAPHY_CITATION),
     'pid' => array(
       '#type' => 'hidden',
       '#value' => $pid

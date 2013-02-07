@@ -71,6 +71,7 @@ class Bibutils {
     $transform->load($transform_filename);
     $doc = new DOMDocument();
     $doc->load($filename);
+    
     if (isset($doc->documentElement)) {
       $xslt = new XSLTProcessor();
       $xslt->importStyleSheet($transform);

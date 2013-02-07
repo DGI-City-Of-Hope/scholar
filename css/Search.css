@@ -4,13 +4,8 @@
     Author     : nbanks
     Description:
         Purpose of the stylesheet follows.
-*
-div.form-item select { 
-  display: inline-block;
-}*/
-
-
-div.form-item { 
+*/
+form#scholar-search-form div.form-item { 
   display: inline-block;
 }
 

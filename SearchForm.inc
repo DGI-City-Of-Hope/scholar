@@ -16,8 +16,10 @@
  * @return array
  */
 function scholar_search_form(array &$form_state) {
-  drupal_add_js(drupal_get_path('module', 'scholar') . '/js/Ahah.js');
-  drupal_add_css(drupal_get_path('module', 'scholar') . '/css/Search.css');
+  $path = drupal_get_path('module', 'scholar');
+  //drupal_add_js($path . '/js/fix-jquery-update.js', 'theme');
+  drupal_add_js($path . '/js/Ahah.js');
+  drupal_add_css($path . '/css/Search.css');
   module_load_include('inc', 'islandora_solr_search', 'includes/common');
   $num_terms = 1;
   if (isset($form_state['values'])) {
@@ -98,8 +100,9 @@ EOT
         '#attributes' => array('style' => 'visibility:hidden;position:fixed;top:-1000px;right:-1000px;')
       ),
       'add' => array(
-        '#type' => 'button',
+        '#type' => 'submit',
         '#value' => '+',
+        '#name' => 'add-field-' . $i,
         '#ahah' => array(
           'path' => MENU_SCHOLAR_ADVANCED_SEARCH_ADD_FIELD,
           'wrapper' => 'scholar-search-terms',

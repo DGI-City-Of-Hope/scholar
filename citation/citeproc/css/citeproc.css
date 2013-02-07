@@ -11,10 +11,16 @@
    Syntax recommendation http://www.w3.org/TR/REC-CSS2/
 */
 
-.csl-entry > div{ 
+.csl-entry > div { 
   display: inline;
 }
 
 .csl-entry {
   margin: 1em;
+}
+
+.csl-entry > div.csl-indent {
+  display: block;
+  padding-top: 1em;
+  padding-left: 1em;
 }

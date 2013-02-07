@@ -3,7 +3,7 @@
     <h3 style="display:inline">
       <?php print t('Citation:') ?>
     </h3> 
-    <select id="style" class="form-select" onchange="jQuery('.citeproc-bibliography').attr('id', this.value); Drupal.attachBehaviors();">
+    <select id="style" class="form-select" onchange="jQuery('.citeproc-bibliography').attr('id', this.value); Drupal.settings.citeproc.refresh = true; Drupal.attachBehaviors();">
       <?php foreach ($styles as $id => $name) : ?>
         <option value="<?php print $id ?>"><?php print $name ?></option>
       <?php endforeach; ?>
@@ -11,7 +11,9 @@
     <?php print print_r($citation[0], TRUE); ?>
     <?php print drupal_get_form('islandora_bibliography_citation_form', $pid); ?>
   </div>
-  <a href="http://gs4bq3cf5t.search.serialssolutions.com/OpenURL_local?sid=Entrez:PubMed&amp;id=pmid:22175078" ref="PrId=caucpilib&amp;itool=Abstract-otool&amp;uid=22175078&amp;nlmid=9319162&amp;db=pubmed&amp;log$=linkouticon" target="_blank"><img alt="Click here to read" border="0" src="<?php print $open_url_img; ?>"></a> 
+  <?php if (isset($accessnum)): ?>
+    <a id="open-url-link" class="overview-field" href="http://linksource.ebsco.com/linking.aspx?ID=12411?sid=Entrez:PubMed&amp;id=pmid:<?php print $accessnum; ?>" target="_blank"><img alt="Click here to read" id="linkout-icon-unknown-DB__1__13__4178" border="0" src="<?php print $open_url_img; ?>"></a>
+  <?php endif; ?>
   <?php if (!empty($abstract)): ?>
     <div id="abstract" class="overview-field">
       <h3><?php print t('Abstract:') ?></h3>

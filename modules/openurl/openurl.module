@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * @file
+ *
+ * Implements hooks and callbacks for this module.
+ */
+define('MENU_OPENURL_SETTINGS', 'admin/settings/openurl');
+define('MENU_OPENURL_DEFAULT_PARAMETERS', 'admin/settings/openurl/%');
+define('THEME_OPENURL_LINK', 'openurl_link');
+define('THEME_OPENURL_FORM_TABLE', 'openurl_form_table');
+define('THEME_OPENURL_FORM_DEFAULT_PARAMETERS', 'openurl_form_default_parameters');
+define('FILES_OPENURL', file_directory_path() . '/openurl');
+
+/**
+ * Implements hook_menu().
+ */
+function openurl_menu() {
+  return array(
+    MENU_OPENURL_SETTINGS => array(
+      'title' => t('OpenURL Administration'),
+      'description' => t('Settings for configuring OpenURL.'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('openurl_settings_form'),
+      'access arguments' => array('administer site configuration'),
+      'file' => 'openurl.admin.inc',
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    MENU_OPENURL_DEFAULT_PARAMETERS => array(
+      'title' => t('OpenURL Administration'),
+      'description' => t('Edit OpenURL Settings.'),
+      'page callback' => 'theme',
+      'page arguments' => array(THEME_OPENURL_FORM_DEFAULT_PARAMETERS, 3),
+      'access arguments' => array('administer site configuration'),
+      'file' => 'openurl.admin.inc',
+      'type' => MENU_NORMAL_ITEM,
+    )
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function openurl_theme() {
+  return array(
+    THEME_OPENURL_LINK => array(
+      'file' => 'openurl.inc',
+      'arguments' => array('name' => NULL, 'params' => array(), 'title' => NULL, 'text' => NULL)
+    ),
+    THEME_OPENURL_FORM_TABLE => array(
+      'file' => 'openurl.admin.inc',
+      'arguments' => array('element' => NULL)
+    ),
+    THEME_OPENURL_FORM_DEFAULT_PARAMETERS => array(
+      'file' => 'openurl.admin.inc',
+      'arguments' => array('id' => NULL)
+    )
+  );
+}

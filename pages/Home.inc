@@ -28,6 +28,9 @@ function scholar_home() {
 function template_preprocess_scholar_home(array &$variables) {
   $path = drupal_get_path('module', 'scholar');
   drupal_add_css("$path/css/Home.css");
-  $variables['browse_by_user'] = db_result(db_query("SELECT COUNT(uid) FROM {users} WHERE uid > 1")) > 0;
-  $variables['browse_by_department'] = TRUE;
+  /**
+   * Get users
+   */
+  $variables['browse_by_user'] = TRUE;
+  $variables['browse_by_department'] = FALSE;
 }

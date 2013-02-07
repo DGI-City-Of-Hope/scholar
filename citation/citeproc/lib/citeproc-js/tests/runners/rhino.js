@@ -48,6 +48,7 @@ load("./dojo/dojo/dojo.js");
 dojo.registerModulePath("dojo","./dojo/dojo");
 dojo.registerModulePath("dojox","./dojo/dojox");
 dojo.registerModulePath("std", "./tests/bundled");
+dojo.registerModulePath("styletests", "./tests/styletests");
 dojo.registerModulePath("citeproc_js", "./tests/citeproc-js");
 dojo.registerModulePath("csl", "./src");
 dojo.registerModulePath("csl.output", "./src/output");

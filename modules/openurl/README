@@ -1,0 +1,16 @@
+OpenURL Module
+  
+--- Description ---
+  This module provides a few convenience functions for generating OpenURL links.
+
+--- Configuration ---
+  The settings page can be found at /admin/settings/openurl. 
+Here you can configure where the link resolves to, what icon to use for the link etc.
+
+
+Should I specify multiple links? With Human/Machine readable names? that can then be used in theme's etc.
+Or a single default link?
+
+Can we set defaults for the parameters?
+Add an upload option for images to be used as icons?
+

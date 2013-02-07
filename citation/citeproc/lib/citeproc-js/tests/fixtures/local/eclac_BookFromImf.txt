@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 and 2010 Frank G. Bennett, Jr. All Rights
+ * Copyright (c) 2009, 2010 and 2011 Frank G. Bennett, Jr. All Rights
  * Reserved.
  *
  * The contents of this file are subject to the Common Public
@@ -31,7 +31,7 @@
  *
  * The Initial Developer of the Original Code is Frank G. Bennett,
  * Jr. All portions of the code written by Frank G. Bennett, Jr. are
- * Copyright (c) 2009 and 2010 Frank G. Bennett, Jr. All Rights Reserved.
+ * Copyright (c) 2009, 2010 and 2011 Frank G. Bennett, Jr. All Rights Reserved.
  *
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU Affero General Public License (the [AGPLv3]
@@ -50,10 +50,16 @@
 citation
 <<===== MODE =====<<
 
+The space preceding the colon in the result below is a half-width
+non-breaking space.
+
+See http://en.wikipedia.org/wiki/Space_(punctuation)#Breaking_and_non-breaking_spaces
+and http://forums.zotero.org/discussion/4933/localized-quotes/#Comment_88384
+for details.
 
 
 >>===== RESULT =====>>
-IMF (International Monetary Fund) (2009), “Regional economic outlook : asia and pacific. world economic and financial surveys,” Washington, DC, May. 
+IMF (International Monetary Fund) (2009), “Regional economic outlook : asia and pacific. world economic and financial surveys,” Washington, DC, May.
 <<===== RESULT =====<<
 
 
@@ -61,7 +67,7 @@ IMF (International Monetary Fund) (2009), “Regional economic outlook : asia an
 <style 
       xmlns="http://purl.org/net/xbiblio/csl"
       class="note"
-      version="1.1x">
+      version="1.1mlz1">
   <info>
     <id />
     <title />
@@ -70,15 +76,15 @@ IMF (International Monetary Fund) (2009), “Regional economic outlook : asia an
   <locale xml:lang="en">
     <style-options punctuation-in-quote="true"/>
     <terms>
-      <term name="un-sales-number-label">United Nations Publication, sales N°</term>
-      <term name="collection-number-label">N°</term>
+      <term name="number-00">United Nations Publication, sales N°</term>
+      <term name="number-01">N°</term>
     </terms>
   </locale>
   <locale xml:lang="es">
     <style-options punctuation-in-quote="true"/>
     <terms>
-      <term name="un-sales-number-label">Publicación de las Naciones Unidas, Nº de venta</term>
-      <term name="collection-number-label">N°</term>
+      <term name="number-00">Publicación de las Naciones Unidas, Nº de venta</term>
+      <term name="number-01">N°</term>
       <term name="month-01">enero</term>
       <term name="month-02">febrero</term>
       <term name="month-03">marzo</term>
@@ -107,8 +113,8 @@ IMF (International Monetary Fund) (2009), “Regional economic outlook : asia an
   </locale>
   <macro name="un-sales-number-identifier">
     <group delimiter=": ">
-      <text term="un-sales-number-label"/>
-      <text variable="un-sales-number"/>
+      <text term="number-00"/>
+      <text variable="number"/>
     </group>
   </macro>
   <macro name="issued-month">
@@ -124,7 +130,7 @@ IMF (International Monetary Fund) (2009), “Regional economic outlook : asia an
   </macro>
   <macro name="document-number-parens-un-only">
     <choose>
-      <if variable="un-sales-number">
+      <if jurisdiction="un.org">
         <text variable="number" prefix="(" suffix=")"/>
       </if>
     </choose>
@@ -133,7 +139,7 @@ IMF (International Monetary Fund) (2009), “Regional economic outlook : asia an
     <group delimiter=", ">
       <text variable="collection-title"/>
       <group delimiter=" ">
-        <text term="collection-number-label" />
+        <text term="number-01" />
         <text variable="collection-number"/>
       </group>
     </group>
@@ -171,7 +177,11 @@ IMF (International Monetary Fund) (2009), “Regional economic outlook : asia an
             <text macro="issued-month"/>
           </group>
         </group>
-        <text macro="un-sales-number-identifier"/>
+        <choose>
+          <if jurisdiction="un.org">
+            <text macro="un-sales-number-identifier"/>
+          </if>
+        </choose>
       </group>
     </layout>
   </citation>
@@ -194,6 +204,7 @@ IMF (International Monetary Fund) (2009), “Regional economic outlook : asia an
         "number": "1,000,000", 
         "publisher": "IMF (International Monetary Fund)", 
         "publisher-place": "Washington, DC", 
+        "jurisdiction": "imf.org",
         "title": "Regional economic outlook : asia and pacific. world economic and financial surveys", 
         "type": "book"
     }

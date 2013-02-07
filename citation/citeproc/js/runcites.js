@@ -1,6 +1,7 @@
 // Renders each citation.
 Drupal.behaviors.citeproc = function (context){
-  if(Drupal.settings.citeproc !== undefined) {
+  if(Drupal.settings.citeproc !== undefined && Drupal.settings.citeproc.refresh) {
+    Drupal.settings.citeproc.refresh = false;
     var appendCitations = function (citeproc, items) {
       for(id in items) {
         var citation = items[id];

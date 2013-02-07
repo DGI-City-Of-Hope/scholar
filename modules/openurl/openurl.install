@@ -1,0 +1,138 @@
+<?php
+
+/**
+ * @file
+ *
+ * Implements hooks and callbacks for installing this module.
+ */
+module_load_include('inc', 'openurl', 'openurl.db');
+
+/**
+ * Implementation of hook_install().
+ */
+function openurl_install() {
+  drupal_install_schema('openurl');
+  _openurl_add_foreign_key_constraints();
+  _openurl_create_files_directory();
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function openurl_uninstall() {
+  drupal_uninstall_schema('openurl');
+  _openurl_delete_files_directory();
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function openurl_schema() {
+  /**
+   * Default Parameters used in constructing the OpenURL.
+   */
+  $schema[TABLE_OPENURL_DEFAULT_PARAMETERS] = array(
+    'description' => t('Default parameters to use with a given OpenURL'),
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'setting_id' => array(
+        'type' => 'int',
+        'not null' => TRUE
+      ),
+      'param_key' => array(
+        'description' => t('Parameter Key.'),
+        'type' => 'varchar',
+        'length' => 256,
+        'not null' => TRUE,
+      ),
+      'param_value' => array(
+        'description' => t('Parameter Value.'),
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'indexes' => array(
+      'setting_id' => array('setting_id'),
+    )
+  );
+  /**
+   * Storage location for OpenURL settings.
+   */
+  $schema[TABLE_OPENURL_SETTINGS] = array(
+    'description' => t('Storage location for OpenURL Settings.'),
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => t('Name used to reference settings.'),
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE
+      ),
+      'url' => array(
+        'description' => t('Base URL of the OpenURL resolver.'),
+        'type' => 'varchar',
+        'length' => 256,
+        'not null' => TRUE,
+      ),
+      'icon' => array(
+        'description' => t('Icon Filename.'),
+        'type' => 'varchar',
+        'length' => 256,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'name' => array('name')
+    ),
+  );
+  return $schema;
+}
+
+/**
+ * Adds foreign key constraints to the openurl_default_parameters table.
+ */
+function _openurl_add_foreign_key_constraints() {
+  $table = TABLE_OPENURL_SETTINGS;
+  $constrained = TABLE_OPENURL_DEFAULT_PARAMETERS;
+  // Only InnoDB supports foreign keys. Other formats fail silently.
+  db_query("ALTER TABLE `{{$table}}` ENGINE = InnoDB");
+  db_query("ALTER TABLE `{{$constrained}}` ENGINE = InnoDB");
+  $query = <<<EOT
+  ALTER TABLE `{{$constrained}}` ADD CONSTRAINT `{{$constrained}}_setting_id`
+  FOREIGN KEY (`setting_id`)
+  REFERENCES `{{$table}}` (`id`)
+  ON DELETE CASCADE
+  ON UPDATE NO ACTION
+EOT;
+  db_query($query);
+}
+
+/**
+ * Adds directory for storing uploaded icon files.
+ */
+function _openurl_create_files_directory() {
+  $path = file_directory_path() . '/openurl';
+  file_check_directory($path, FILE_CREATE_DIRECTORY);
+}
+
+/**
+ * Removes the directory for storing uploaded icon files.
+ */
+function _openurl_delete_files_directory() {
+  $path = file_directory_path() . '/openurl';
+  if (file_check_directory($path)) {
+    $files = file_scan_directory($path, '.*');
+    foreach ($files as $file) {
+      unlink($file->filename);
+    }
+    rmdir($path);
+  }
+}

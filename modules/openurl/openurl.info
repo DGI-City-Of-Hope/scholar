@@ -1,0 +1,5 @@
+name = OpenURL
+description = Provides an API for generating OpenURL links, and customizable settings menu for configuring the API.
+package = Islandora Tools
+version = 6.x-$Format:%h$-dev
+core = 6.x

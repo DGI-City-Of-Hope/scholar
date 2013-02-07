@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 and 2010 Frank G. Bennett, Jr. All Rights
+ * Copyright (c) 2009, 2010 and 2011 Frank G. Bennett, Jr. All Rights
  * Reserved.
  *
  * The contents of this file are subject to the Common Public
@@ -31,7 +31,7 @@
  *
  * The Initial Developer of the Original Code is Frank G. Bennett,
  * Jr. All portions of the code written by Frank G. Bennett, Jr. are
- * Copyright (c) 2009 and 2010 Frank G. Bennett, Jr. All Rights Reserved.
+ * Copyright (c) 2009, 2010 and 2011 Frank G. Bennett, Jr. All Rights Reserved.
  *
  * Alternatively, the contents of this file may be used under the
  * terms of the GNU Affero General Public License (the [AGPLv3]
@@ -46,6 +46,9 @@
  * or the [AGPLv3] License.”
  */
 
+/*global CSL: true */
+
+
 /**
  * String stack object.
  * <p>Numerous string stacks are used to track nested
@@ -55,10 +58,10 @@
  * @class
  */
 CSL.Stack = function (val, literal) {
-	this.mystack = [];
-	if (literal || val) {
-		this.mystack.push(val);
-	}
+    this.mystack = [];
+    if (literal || val) {
+        this.mystack.push(val);
+    }
 };
 
 /**
@@ -66,18 +69,18 @@ CSL.Stack = function (val, literal) {
  * <p>This just does what it says.</p>
  */
 CSL.Stack.prototype.push = function (val, literal) {
-	if (literal || val) {
-		this.mystack.push(val);
-	} else {
-		this.mystack.push("");
-	}
+    if (literal || val) {
+        this.mystack.push(val);
+    } else {
+        this.mystack.push("");
+    }
 };
 
 /**
  * Clear the stack
  */
 CSL.Stack.prototype.clear = function () {
-	this.mystack = [];
+    this.mystack = [];
 };
 
 /**
@@ -86,17 +89,17 @@ CSL.Stack.prototype.clear = function () {
  * main code.</p>
  */
 CSL.Stack.prototype.replace = function (val, literal) {
-	//
-	// safety fix after a bug was chased down.  Rhino
-	// JS will process a negative index without error (!).
-	if (this.mystack.length === 0) {
-		throw "Internal CSL processor error: attempt to replace nonexistent stack item with " + val;
-	}
-	if (literal || val) {
-		this.mystack[(this.mystack.length - 1)] = val;
-	} else {
-		this.mystack[(this.mystack.length - 1)] = "";
-	}
+    //
+    // safety fix after a bug was chased down.  Rhino
+    // JS will process a negative index without error (!).
+    if (this.mystack.length === 0) {
+        throw "Internal CSL processor error: attempt to replace nonexistent stack item with " + val;
+    }
+    if (literal || val) {
+        this.mystack[(this.mystack.length - 1)] = val;
+    } else {
+        this.mystack[(this.mystack.length - 1)] = "";
+    }
 };
 
 
@@ -105,7 +108,7 @@ CSL.Stack.prototype.replace = function (val, literal) {
  * <p>Just does what it says.</p>
  */
 CSL.Stack.prototype.pop = function () {
-	return this.mystack.pop();
+    return this.mystack.pop();
 };
 
 
@@ -115,7 +118,7 @@ CSL.Stack.prototype.pop = function () {
  * the main code.</p>
  */
 CSL.Stack.prototype.value = function () {
-	return this.mystack.slice(-1)[0];
+    return this.mystack.slice(-1)[0];
 };
 
 
@@ -125,5 +128,5 @@ CSL.Stack.prototype.value = function () {
  * be handled on the stack</p>
  */
 CSL.Stack.prototype.length = function () {
-	return this.mystack.length;
+    return this.mystack.length;
 };

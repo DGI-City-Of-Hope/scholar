@@ -48,14 +48,19 @@ function command_exists($name) {
  */
 function bibutils_requirements($phase) {
   $requriements = array();
-  $commands = array('ris2xml', 'endx2xml', 'xml2ris');
-  foreach ($commands as $command) {
+  $commands = array(
+    'ris2xml' => t('Converts RIS files to MODS intermediate'),
+    'endx2xml' => t('Converts EndNote XML files to MODS intermediate'),
+    'xml2ris' => t('Converts MODS file to RIS')
+  );
+  foreach ($commands as $command => $description) {
     $title = t('%command in $PATH', array('%command' => $command));
     if (command_exists($command)) { // Exists on $PATH
       $requriements[$command] = array(
         'title' => $title,
         'value' => t('Available.'),
         'severity' => REQUIREMENT_OK,
+        'description' => $description
       );
     }
     else { // Does not exist on $PATH.

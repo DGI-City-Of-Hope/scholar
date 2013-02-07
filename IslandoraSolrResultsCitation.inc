@@ -21,10 +21,11 @@ class IslandoraSolrResultsCitation extends IslandoraSolrResults {
    */
   function displayResults(IslandoraSolrQueryProcessor $query_processor, $title = "Search Results", $output = '') {
     module_load_include('inc', 'scholar', 'SearchForm');
+    drupal_set_title(t('Search Publications'));
     drupal_add_css(drupal_get_path('module', 'scholar') . '/css/Search.css');
-    $sort = $_SESSION['scholar']['search']['sort'];
-    $order = $_SESSION['scholar']['search']['order'];
     if (!empty($_SESSION['scholar']['search']['sort'])) {
+      $sort = $_SESSION['scholar']['search']['sort'];
+      $order = $_SESSION['scholar']['search']['order'];
       $query_processor->solrParams['fl'] = 'PID,mod_fullxml_store';
       $query_processor->solrParams['sort'] = $sort . ' ' . $order;
       $query_processor->executeQuery();
@@ -69,14 +70,16 @@ class IslandoraSolrResultsCitation extends IslandoraSolrResults {
 
 }
 
-function template_preprocess_scholar_search_alt_item(array &$vars)  {
-  $s_doc =& $vars['solr_doc'];
+function template_preprocess_scholar_search_alt_item(array &$vars) {
+  $s_doc = & $vars['solr_doc'];
   $pid = $s_doc->PID;
   $title = $s_doc->mods_title_ms;
-  if (is_array($title)) {$title = $title[0];}
-  
+  if (is_array($title)) {
+    $title = $title[0];
+  }
+
   $vars['title'] = l($title, 'fedora/repository/' . htmlspecialchars($pid, ENT_QUOTES, 'utf-8'));
-  
+
   $vars['citation'] = scholar_citation_from_solr_doc($s_doc, $vars['style']);
 }
 
@@ -91,11 +94,11 @@ function template_preprocess_scholar_search_item(array &$variables) {
   if ($item->exists() && isset($item->datastreams['MODS'])) {
     $title = $item->objectProfile->objLabel;
     $variables['title'] = l($title, 'fedora/repository/' . htmlspecialchars($pid, ENT_QUOTES, 'utf-8'));
-    
+
     $style = $variables['style'];
     $cache_id = "citation_{$pid}";
     $cached_raw = cache_get($cache_id);
-    
+
     $bibliography = NULL;
     if (!empty($cached_raw)) {
       $bibliography = citeproc_bibliography_from_raw_array($style, $cached_raw->data);
@@ -106,7 +109,7 @@ function template_preprocess_scholar_search_item(array &$variables) {
       if (!empty($mods)) {
         $doc = new DOMDocument();
         $doc->loadXML($mods);
-        
+
         $bibliography = citeproc_bibliography_from_mods($style, $doc, $cache_id);
       }
     }
@@ -115,6 +118,7 @@ function template_preprocess_scholar_search_item(array &$variables) {
 }
 
 function scholar_search_results_form(array &$form_state, IslandoraSolrQueryProcessor $query_processor) {
+  global $user;
   citation_exporter_include_download_redirect();
   module_load_include('inc', 'fedora_repository', 'api/fedora_item');
   $results = $query_processor->solrResult;
@@ -134,12 +138,12 @@ function scholar_search_results_form(array &$form_state, IslandoraSolrQueryProce
   foreach ($results->response->docs as $doc) {
     $pid = $doc->PID;
     $result = '';
-      $pids[] = $pid;
-      $result = theme(THEME_SCHOLAR_SEARCH_ITEM, $pid, $style);
-      $table['rows'][] = array(
-        '#pid' => $pid,
-        'result' => array('#value' => $result),
-      );
+    $pids[] = $pid;
+    $result = theme(THEME_SCHOLAR_SEARCH_ITEM, $pid, $style);
+    $table['rows'][] = array(
+      '#pid' => $pid,
+      'result' => array('#value' => $result),
+    );
   }
   $checkboxes = array_fill_keys($pids, '');
   $table['selections'] = array(
@@ -147,6 +151,14 @@ function scholar_search_results_form(array &$form_state, IslandoraSolrQueryProce
     '#options' => $checkboxes,
   );
   $form_state['storage']['query'] = $query_processor;
+  $options = array(
+    'RIS' => 'RIS (Endnote format)',
+    'RTF' => 'RTF (word proccessor format)',
+    'PDF' => 'PDF',
+  ); //'CSV' => 'CSV'
+  if ($user->uid == 1) { // Only admin can do.
+    $options['CSV'] = 'CSV';
+  }
   return array(
     'controls' => array(
       '#type' => 'markup',
@@ -160,11 +172,7 @@ function scholar_search_results_form(array &$form_state, IslandoraSolrQueryProce
       'format' => array(
         '#type' => 'select',
         '#length' => 50,
-        '#options' => array(
-          'RIS' => 'RIS (Endnote format)',
-          'RTF' => 'RTF (word proccessor format)',
-          'PDF' => 'PDF',
-        )
+        '#options' => $options
       ),
       'style' => array(
         '#type' => 'select',
@@ -213,7 +221,7 @@ function scholar_search_results_form(array &$form_state, IslandoraSolrQueryProce
  * Check to see if some thing has been selected.
  */
 function scholar_search_results_form_validate(array $form, array &$form_state) {
-  // @todo prevent submission with more then.
+// @todo prevent submission with more then.
 }
 
 /**
@@ -250,7 +258,13 @@ function scholar_search_results_form_save_to_bibliography(array $form, array &$f
   }
   $count = Bibliography::AddCitations($pids);
   $form_state['storage'] = NULL;
-  drupal_set_message(t('Added %num Citation(s)', array('%num' => $count)));
+  if ($count > 0) {
+    drupal_set_message(t('Added %num Citation(s)', array('%num' => $count)));
+  }
+  $existed = count($pids) - $count;
+  if ($existed > 0) {
+    drupal_set_message(t('%num Citation(s) Already Present', array('%num' => $existed)));
+  }
 }
 
 function scholar_search_results_form_export(array $form, array &$form_state) {
@@ -262,10 +276,91 @@ function scholar_search_results_form_export(array $form, array &$form_state) {
     $selections = array_filter($form_state['values']['table']['selections']);
     $pids = array_keys($selections);
   }
-  module_load_include('inc', 'citation_exporter', 'Batch');
-  citation_exporter_batch_export($pids, $form_state['values']['style'], $form_state['values']['format']);
-  batch_process();
+  if ($form_state['values']['format'] == 'CSV') {
+    scholar_search_results_form_export_csv($form, $form_state);
+  }
+  else {
+    module_load_include('inc', 'citation_exporter', 'Batch');
+    citation_exporter_batch_export($pids, $form_state['values']['style'], $form_state['values']['format']);
+    batch_process();
+  }
   unset($form_state['storage']);
+}
+
+function scholar_search_results_form_export_csv(array $form, array &$form_state) {
+  if ($form_state['values']['format'] == 'CSV') {
+    module_load_include('inc', 'islandora_solr_config', 'IslandoraSolrResultsCSV');
+    $query_processor = $form_state['storage']['query'];
+    $solrParams = $query_processor->solrParams; // Copy old params
+    $fields = array(
+      'PID',
+      'fgs.label',
+      'fgs.createdDate',
+      'fgs.lastModifiedDate',
+      'coh_search_abstract',
+      'coh_search_author',
+      'coh_search_author_affiliation',
+      'coh_search_author_identifier',
+      'coh_search_biological_pathway',
+      'coh_search_book_authors',
+      'coh_search_book_group_authors',
+      'coh_search_book_title',
+      'coh_search_cancer_center_membership_level',
+      'coh_search_cancer_center_program_code',
+      'coh_search_chemical_or_substance_name',
+      'coh_search_collection_series_title',
+      'coh_search_conference',
+      'coh_search_cores',
+      'coh_search_dept_id',
+      'coh_search_dept_name',
+      'coh_search_disease_program',
+      'coh_search_division_id',
+      'coh_search_division_name',
+      'coh_search_doi',
+      'coh_search_editor',
+      'coh_search_full_journal_title',
+      'coh_search_funding_agency',
+      'coh_search_grant_number',
+      'coh_search_group_author',
+      'coh_search_isbn',
+      'coh_search_issn',
+      'coh_search_keywords',
+      'coh_search_language',
+      'coh_search_mesh_terms',
+      'coh_search_osr_id_number',
+      'coh_search_peer_reviewed',
+      'coh_search_publication_type',
+      'coh_search_secondary_source_id',
+      'coh_search_status',
+      'coh_search_times_cited',
+      'coh_search_title',
+      'coh_search_tumor_model',
+      'coh_search_year_published',
+      'coh_facet_keywords',
+      'coh_facet_biological_pathway',
+      'coh_facet_cancer_center_membership_level',
+      'coh_facet_cancer_center_program_code',
+      'coh_facet_cores',
+      'coh_facet_dept_name',
+      'coh_facet_disease_program',
+      'coh_facet_division_name',
+      'coh_facet_full_journal_title',
+      'coh_facet_funding_agency',
+      'coh_facet_grant_number',
+      'coh_facet_language',
+      'coh_facet_mesh_terms',
+      'coh_facet_peer_reviewed',
+      'coh_facet_publication_date',
+      'coh_facet_publication_type',
+      'coh_facet_status',
+      'coh_facet_tumor_model',
+      'coh_facet_year_published',
+    );
+    $query_processor->solrParams['fl'] = implode(',', $fields);
+    $results = new IslandoraSolrResultsCSV();
+    $results->printCSV($query_processor);
+    $query_processor->solrParams = $solrParams;
+  }
 }
 
 /**

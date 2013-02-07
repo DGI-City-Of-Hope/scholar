@@ -5,8 +5,8 @@
     Description:
         Purpose of the stylesheet follows.
 */
-div.form-item { 
-    display: inline-block;
+form#scholar-search-form div.form-item { 
+  display: inline-block;
 }
 h4 {
     color: #7C7369;
